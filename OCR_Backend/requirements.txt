@@ -1,0 +1,29 @@
+# Web framework used for the OCR API (matches the FastAPI backend
+# already chosen for this project - see root README tech stack)
+fastapi
+uvicorn
+python-multipart
+
+# Image handling (opening/reading uploaded images, and rendering PDF
+# pages to images for OCR)
+Pillow
+
+# OCR engine wrapper - requires the Tesseract OCR binary to be installed
+# on the system separately (see README.md "Dependencies" section)
+pytesseract
+
+# Extracting text directly from digital/text-based PDFs
+pypdf
+
+# Converting PDF pages to images for scanned/image-based PDFs
+# (requires the "poppler" system utility - see README.md)
+pdf2image
+
+# --- Dev/test-only dependencies below ---
+
+# Test runner + FastAPI test client support
+pytest
+httpx
+
+# Used only inside tests to generate a sample text-based PDF on the fly
+reportlab
