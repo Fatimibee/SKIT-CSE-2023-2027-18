@@ -1,0 +1,27 @@
+# Python virtual environment
+AI_Backend/.env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Environment variables
+.env
+
+# Temporary / audio files inside AI_Backend
+AI_Backend/temp_audio.wav
+AI_Backend/*.wav
+AI_Backend/*.mp3
+AI_Backend/*.m4a
+AI_Backend/*.ogg
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
