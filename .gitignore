@@ -25,3 +25,5 @@ Thumbs.db
 
 # Logs
 *.log
+OCR_Backend/venv/
+OCR_Backend/.pytest_cache/
