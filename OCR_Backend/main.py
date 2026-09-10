@@ -20,7 +20,8 @@ from ocr_routes import router as ocr_router
 
 app = FastAPI(
     title="OCR / Document Intelligence Module",
-    description="Document upload + OCR text extraction for the "
+    description="Document upload, OCR text extraction, structured field "
+                 "extraction and internal verification for the "
                  "Voice Based Government Scheme Assistant project.",
 )
 

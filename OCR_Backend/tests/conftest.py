@@ -64,6 +64,41 @@ def sample_text_pdf_bytes():
     return buffer.read()
 
 
+# The synthetic document used by the structured-extraction tests. This is
+# FAKE data invented for testing - it is not any real person's document,
+# and no real Aadhaar number, phone number or address appears here.
+SAMPLE_CERTIFICATE_LINES = (
+    "INCOME CERTIFICATE",
+    "",
+    "Name: Rahul Sharma",
+    "Date of Birth: 12/05/2002",
+    "Gender: Male",
+    "Category: OBC",
+    "Annual Income: Rs. 1,80,000",
+    "State: Rajasthan",
+    "District: Jaipur",
+)
+
+
+@pytest.fixture
+def sample_income_certificate_pdf_bytes():
+    """A real text-based PDF containing a synthetic income certificate,
+    used to test the full /ocr/extract-fields flow end to end."""
+    from reportlab.pdfgen import canvas
+
+    buffer = io.BytesIO()
+    pdf_canvas = canvas.Canvas(buffer)
+
+    y_position = 750
+    for line in SAMPLE_CERTIFICATE_LINES:
+        pdf_canvas.drawString(72, y_position, line)
+        y_position -= 24
+
+    pdf_canvas.save()
+    buffer.seek(0)
+    return buffer.read()
+
+
 @pytest.fixture
 def sample_scanned_pdf_bytes():
     """A PDF made from a plain image (no text layer at all), to test the

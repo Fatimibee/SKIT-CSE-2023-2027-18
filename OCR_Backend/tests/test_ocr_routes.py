@@ -77,3 +77,152 @@ def test_blank_document_returns_meaningful_error(client, blank_image_bytes):
     assert response.status_code == 422
     body = response.json()
     assert body["success"] is False
+
+
+# ===========================================================================
+# POST /ocr/extract-fields  (structured extraction + verification)
+#
+# The tests above must keep passing untouched - /ocr/extract is unchanged.
+# ===========================================================================
+
+
+def test_extract_fields_returns_structured_data(
+    client, sample_income_certificate_pdf_bytes
+):
+    files = {
+        "file": (
+            "income_certificate.pdf",
+            sample_income_certificate_pdf_bytes,
+            "application/pdf",
+        )
+    }
+    response = client.post("/ocr/extract-fields", files=files)
+
+    assert response.status_code == 200
+    body = response.json()
+
+    assert body["success"] is True
+    assert body["filename"] == "income_certificate.pdf"
+    assert body["document_type"] == "Income Certificate"
+
+    data = body["extracted_data"]
+    assert data["name"] == "Rahul Sharma"
+    assert data["date_of_birth"] == "12/05/2002"
+    assert data["gender"] == "Male"
+    assert data["category"] == "OBC"
+    assert data["annual_income"] == 180000
+    assert data["state"] == "Rajasthan"
+    assert data["district"] == "Jaipur"
+    assert data["document_type"] == "Income Certificate"
+
+    assert body["verification"]["is_valid"] is True
+    assert body["verification"]["issues"] == []
+
+    # The raw OCR text is still returned, so nothing is lost.
+    assert "INCOME CERTIFICATE" in body["raw_text"].upper()
+
+
+def test_extract_fields_response_has_all_expected_keys(
+    client, sample_income_certificate_pdf_bytes
+):
+    files = {"file": ("doc.pdf", sample_income_certificate_pdf_bytes, "application/pdf")}
+    body = client.post("/ocr/extract-fields", files=files).json()
+
+    assert set(body.keys()) == {
+        "success", "filename", "document_type",
+        "extracted_data", "verification", "raw_text",
+    }
+    assert set(body["extracted_data"].keys()) == {
+        "name", "date_of_birth", "age", "gender", "category",
+        "annual_income", "state", "district", "address", "document_type",
+    }
+    assert set(body["verification"].keys()) == {
+        "is_valid", "issues", "missing_fields", "extracted_fields",
+    }
+
+
+def test_extract_fields_returns_null_for_fields_not_in_the_document(
+    client, sample_png_bytes
+):
+    # This image only contains "HELLO WORLD" - there are no citizen
+    # fields in it at all, so everything must come back as null rather
+    # than invented.
+    files = {"file": ("hello.png", sample_png_bytes, "image/png")}
+    response = client.post("/ocr/extract-fields", files=files)
+
+    assert response.status_code == 200
+    body = response.json()
+    data = body["extracted_data"]
+
+    assert data["date_of_birth"] is None
+    assert data["annual_income"] is None
+    assert data["category"] is None
+    assert data["document_type"] == "Unknown"
+    # Missing information must not be reported as invalid information.
+    assert body["verification"]["is_valid"] is True
+
+
+def test_extract_fields_rejects_unsupported_file_type(client):
+    files = {"file": ("notes.txt", b"just some text", "text/plain")}
+    response = client.post("/ocr/extract-fields", files=files)
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["success"] is False
+    assert "unsupported" in body["error"].lower()
+
+
+def test_extract_fields_rejects_missing_file(client):
+    response = client.post("/ocr/extract-fields")
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["success"] is False
+    assert "no file" in body["error"].lower()
+
+
+def test_extract_fields_rejects_empty_file(client):
+    files = {"file": ("empty.png", b"", "image/png")}
+    response = client.post("/ocr/extract-fields", files=files)
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["success"] is False
+    assert "empty" in body["error"].lower()
+
+
+def test_extract_fields_corrupted_file_returns_meaningful_error(
+    client, corrupted_image_bytes
+):
+    files = {"file": ("broken.jpg", corrupted_image_bytes, "image/jpeg")}
+    response = client.post("/ocr/extract-fields", files=files)
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["success"] is False
+    assert body["error"]
+    assert body["filename"] == "broken.jpg"
+
+
+def test_extract_fields_blank_document_returns_meaningful_error(
+    client, blank_image_bytes
+):
+    files = {"file": ("blank.png", blank_image_bytes, "image/png")}
+    response = client.post("/ocr/extract-fields", files=files)
+
+    assert response.status_code == 422
+    assert response.json()["success"] is False
+
+
+def test_extract_still_returns_only_raw_text(
+    client, sample_income_certificate_pdf_bytes
+):
+    # Backward compatibility: the original endpoint must be unchanged and
+    # must NOT start returning the new structured fields.
+    files = {"file": ("doc.pdf", sample_income_certificate_pdf_bytes, "application/pdf")}
+    response = client.post("/ocr/extract", files=files)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert set(body.keys()) == {"success", "filename", "text"}
+    assert "extracted_data" not in body
