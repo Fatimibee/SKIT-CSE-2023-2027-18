@@ -234,6 +234,25 @@ def test_occupation_is_extracted(text, expected):
     assert extract_structured_eligibility(text)["occupation"] == expected
 
 
+@pytest.mark.parametrize("text,expected", [
+    ("students who passed 10th class", "10th Pass"),
+    ("candidates holding a graduate degree", "Graduate"),
+    ("post-graduate students pursuing research", "Post Graduate"),
+    ("polytechnic diploma holders", "Diploma"),
+])
+def test_education_is_extracted(text, expected):
+    assert extract_structured_eligibility(text)["education"] == expected
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("persons with disability having 40% certificate", "Yes"),
+    ("financial assistance for divyang jan", "Yes"),
+    ("differently abled applicants", "Yes"),
+])
+def test_disability_is_extracted(text, expected):
+    assert extract_structured_eligibility(text)["disability"] == expected
+
+
 def test_state_is_extracted():
     assert extract_state("residents of Rajasthan are eligible") == "Rajasthan"
 

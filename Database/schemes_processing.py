@@ -99,6 +99,8 @@ ELIGIBILITY_COLUMNS = [
     "category",
     "occupation",
     "eligibility_state",
+    "education",
+    "disability",
 ]
 
 # Provenance.
@@ -337,6 +339,20 @@ _OCCUPATION_PATTERNS = (
     ("Ex-Serviceman", (r"\bex-?servicem[ae]n\b", r"\bveterans?\b")),
 )
 
+_EDUCATION_PATTERNS = (
+    ("Post Graduate", (r"\bpost[-\s]*graduate\b", r"\bmaster'?s\b", r"\bpost[-\s]*graduation\b", r"\bpg\b")),
+    ("Graduate", (r"\bgraduate\b", r"\bbachelor'?s\b", r"\bgraduation\b", r"\bdegree\b")),
+    ("Diploma", (r"\bdiploma\b", r"\biti\b", r"\bpolytechnic\b")),
+    ("12th Pass", (r"\b12th\b", r"\bhigher\s+secondary\b", r"\b10\+2\b", r"\bintermediate\b")),
+    ("10th Pass", (r"\b10th\b", r"\bmatriculate\b", r"\bmatriculation\b", r"\bsecondary\b")),
+    ("Literate", (r"\bliterate\b", r"\bcan\s+read\s+and\s+write\b")),
+)
+
+_DISABILITY_PATTERNS = (
+    ("Yes", (r"\bpersons?\s+with\s+disabilit", r"\bdivyang", r"\bpwd\b",
+             r"\bdifferently\s+abled\b", r"\bdisabled\b", r"\bhandicapped\b")),
+)
+
 INDIAN_STATES_AND_UTS = (
     "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
     "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka",
@@ -512,6 +528,8 @@ def extract_structured_eligibility(eligibility_text, fallback_text=""):
         "category": _first_pattern_match(text, _CATEGORY_PATTERNS),
         "occupation": _first_pattern_match(text, _OCCUPATION_PATTERNS),
         "eligibility_state": extract_state(text),
+        "education": _first_pattern_match(text, _EDUCATION_PATTERNS),
+        "disability": _first_pattern_match(text, _DISABILITY_PATTERNS),
     }
 
 
