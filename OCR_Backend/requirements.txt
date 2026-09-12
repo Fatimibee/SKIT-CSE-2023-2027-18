@@ -19,6 +19,10 @@ pypdf
 # (requires the "poppler" system utility - see README.md)
 pdf2image
 
+# QR code detection & scanning
+opencv-python
+qrcode
+
 # --- Dev/test-only dependencies below ---
 
 # Test runner + FastAPI test client support

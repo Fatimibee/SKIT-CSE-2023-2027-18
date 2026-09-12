@@ -12,6 +12,7 @@ import os
 
 import pytest
 from PIL import Image, ImageDraw
+import qrcode
 
 # Allow tests to import main.py / ocr_service.py / validators.py which live
 # one directory up (in the OCR_Backend module root, not inside tests/).
@@ -113,6 +114,16 @@ def sample_scanned_pdf_bytes():
 
 
 @pytest.fixture
+def sample_qr_image_bytes():
+    """Generates an image containing a valid QR code with sample data."""
+    qr_img = qrcode.make("GOVT_SCHEME_USER_DEMO_DATA")
+    buffer = io.BytesIO()
+    qr_img.save(buffer, format="PNG")
+    buffer.seek(0)
+    return buffer.read()
+
+
+@pytest.fixture
 def corrupted_pdf_bytes():
     """Bytes that look like they might be a PDF but are not valid."""
     return b"%PDF-1.4 this is not a real pdf, just garbage bytes"
@@ -126,7 +137,7 @@ def corrupted_image_bytes():
 
 @pytest.fixture
 def blank_image_bytes():
-    """A completely blank image - valid file, but no text to extract."""
+    """A completely blank image - valid file, but no text or QR code to extract."""
     image = Image.new("RGB", (200, 200), color="white")
     buffer = io.BytesIO()
     image.save(buffer, format="PNG")

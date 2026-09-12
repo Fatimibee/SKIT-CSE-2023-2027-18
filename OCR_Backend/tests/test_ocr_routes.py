@@ -14,7 +14,22 @@ def test_valid_image_upload_returns_extracted_text(client, sample_png_bytes):
     body = response.json()
     assert body["success"] is True
     assert body["filename"] == "sample.png"
+    assert "text" in body
+    assert "qr_data" in body
     assert "HELLO" in body["text"].upper()
+
+
+def test_valid_qr_image_upload_returns_qr_data(client, sample_qr_image_bytes):
+    files = {"file": ("qr_card.png", sample_qr_image_bytes, "image/png")}
+    response = client.post("/ocr/extract", files=files)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["success"] is True
+    assert body["filename"] == "qr_card.png"
+    assert "qr_data" in body
+    assert len(body["qr_data"]) > 0
+    assert "GOVT_SCHEME_USER_DEMO_DATA" in body["qr_data"][0]
 
 
 def test_valid_pdf_upload_returns_extracted_text(client, sample_text_pdf_bytes):
@@ -25,6 +40,8 @@ def test_valid_pdf_upload_returns_extracted_text(client, sample_text_pdf_bytes):
     body = response.json()
     assert body["success"] is True
     assert body["filename"] == "sample.pdf"
+    assert "text" in body
+    assert "qr_data" in body
     assert "HELLO WORLD" in body["text"].upper()
 
 
@@ -72,7 +89,7 @@ def test_blank_document_returns_meaningful_error(client, blank_image_bytes):
     files = {"file": ("blank.png", blank_image_bytes, "image/png")}
     response = client.post("/ocr/extract", files=files)
 
-    # A blank image has no text to extract - this should fail gracefully,
+    # A blank image has no text or QR code to extract - this should fail gracefully,
     # not crash and not falsely report success.
     assert response.status_code == 422
     body = response.json()
@@ -130,7 +147,7 @@ def test_extract_fields_response_has_all_expected_keys(
 
     assert set(body.keys()) == {
         "success", "filename", "document_type",
-        "extracted_data", "verification", "raw_text",
+        "extracted_data", "verification", "raw_text", "qr_data",
     }
     assert set(body["extracted_data"].keys()) == {
         "name", "date_of_birth", "age", "gender", "category",
@@ -224,5 +241,5 @@ def test_extract_still_returns_only_raw_text(
 
     assert response.status_code == 200
     body = response.json()
-    assert set(body.keys()) == {"success", "filename", "text"}
+    assert set(body.keys()) == {"success", "filename", "text", "qr_data"}
     assert "extracted_data" not in body

@@ -4,11 +4,12 @@ Part of the **Voice-Based Government Scheme Assistant using AI** project.
 
 This is my (Disha's) contribution, covering:
 1. Document Upload & OCR
-2. Document Verification (partial — see Limitations)
-3. Document Processing & Testing
+2. QR Code Scanning & Extraction
+3. Document Verification (partial — see Limitations)
+4. Document Processing & Testing
 
-**Status: Foundation only.** This first version implements document
-upload + OCR text extraction as a standalone FastAPI module. It does
+**Status: OCR + QR Extraction complete.** This version implements document
+upload, OCR text extraction, and QR code detection/scanning as a standalone FastAPI module. It does
 **not** include scheme recommendation logic (Fatimi's module),
 database integration (Divyansh's module), or authentication
 (Devanshi's module) — those will be wired in once those modules exist.
@@ -20,7 +21,7 @@ database integration (Divyansh's module), or authentication
 Citizens upload identity/income/residence documents (PDF or image) so
 the assistant can eventually match them to relevant government
 schemes. Before that matching can happen, we need to reliably pull
-plain text out of whatever they upload — a scanned ration card photo,
+plain text and QR code data (e.g. from Aadhaar or e-Aadhaar QR codes) out of whatever they upload — a scanned ration card photo,
 a photographed Aadhaar card, or a digitally-generated PDF certificate.
 That's what this module does.
 
@@ -38,19 +39,19 @@ teammate merges it into a shared FastAPI app later.
 OCR_Backend/
 ├── main.py                  # Standalone FastAPI app (entry point to run this module)
 ├── ocr_routes.py             # API endpoint definition (POST /ocr/extract)
-├── ocr_service.py            # All OCR / text-extraction logic (no FastAPI code)
+├── ocr_service.py            # All OCR, QR scanning & text-extraction logic (no FastAPI code)
 ├── validators.py             # Upload validation (file type, size, presence)
 ├── requirements.txt          # Python dependencies for this module only
 ├── README.md                 # This file
 └── tests/
-    ├── conftest.py                # Shared pytest fixtures (sample image/PDF generators)
-    ├── test_ocr_service.py        # Unit tests for OCR logic
+    ├── conftest.py                # Shared pytest fixtures (sample image/PDF/QR generators)
+    ├── test_ocr_service.py        # Unit tests for OCR and QR extraction logic
     └── test_ocr_routes.py         # API-level tests for the /ocr/extract endpoint
 ```
 
 **Why split `ocr_service.py` and `ocr_routes.py`?**
 `ocr_service.py` has zero web-framework code — it just takes bytes in
-and returns text out (or raises a clear error). That makes it easy to
+and returns extracted text and QR data (or raises a clear error). That makes it easy to
 unit test and easy to reuse later (e.g. if the team decides to run OCR
 as a background job instead of a synchronous request). `ocr_routes.py`
 is only responsible for HTTP concerns: reading the upload, validating
@@ -66,6 +67,8 @@ Python packages (see `requirements.txt`):
 - `pytesseract` — Python wrapper around the Tesseract OCR engine
 - `pypdf` — extracting text directly from digital/text-based PDFs
 - `pdf2image` — rendering PDF pages to images (for scanned PDFs)
+- `opencv-python` — OpenCV QR code detection & scanning
+- `qrcode` — QR code generation (for tests)
 - `pytest`, `httpx`, `reportlab` — dev/test only
 
 **System-level dependencies (not installed via pip):**
@@ -121,14 +124,15 @@ app.include_router(ocr_router)
 **Request:** `multipart/form-data` with a single field:
 | Field | Type | Description |
 |-------|------|-------------|
-| `file` | file | The document to extract text from (pdf, jpg, jpeg, png) |
+| `file` | file | The document to extract text and QR codes from (pdf, jpg, jpeg, png) |
 
 **Success response** — `200 OK`
 ```json
 {
   "success": true,
   "filename": "sample.pdf",
-  "text": "extracted text here..."
+  "text": "extracted text here...",
+  "qr_data": ["GOVT_SCHEME_USER_DEMO_DATA"]
 }
 ```
 
@@ -167,26 +171,27 @@ python3 -m pytest -v
 
 Tests cover:
 - Valid image upload → text extracted
+- Valid QR code image upload → QR decoded data extracted
 - Valid PDF upload (text-based) → text extracted
-- Scanned/image-based PDF → OCR fallback path
+- Scanned/image-based PDF → OCR fallback path & QR scanning
 - Unsupported file type → rejected with 400
 - Missing file → rejected with 400
 - Empty file → rejected with 400
 - Corrupted image/PDF → rejected with 422 and a meaningful error
-- Blank document (valid file, no text) → rejected with 422
-- Core OCR service functions tested directly (no HTTP layer)
+- Blank document (valid file, no text/QR code) → rejected with 422
+- Core OCR and QR service functions tested directly (no HTTP layer)
 
 All sample files used in tests are generated in-memory at test time
 (no binary test fixtures are committed to the repo).
 
-## Limitations (Foundation Version)
+## Limitations (Current Version)
 
-This is intentionally the **first, minimal version**. Not yet included:
+This is the **Document Intelligence + QR Scanning version**. Not yet included:
 - No database storage of uploaded documents or extracted text
 - No authentication/authorization on the endpoint
 - No scheme-matching or recommendation logic
 - No structured field extraction (e.g. pulling out a specific "Name" or
-  "DOB" field) — only raw text extraction for now. This is the natural
+  "DOB" field) — raw text & decoded QR payloads for now. This is the natural
   next step for the "Document Verification" part of my responsibilities.
 - OCR accuracy depends on image quality; low-resolution or heavily
   skewed scans may produce noisy text
