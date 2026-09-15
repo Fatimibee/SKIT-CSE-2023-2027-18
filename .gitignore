@@ -1,12 +1,15 @@
 # Python virtual environment
 AI_Backend/.env/
+.venv/
+OCR_Backend/venv/
+
+# Environment variables
+.env
 
 # Python cache
 __pycache__/
 *.py[cod]
-
-# Environment variables
-.env
+*.pyc
 
 # Temporary / audio files inside AI_Backend
 AI_Backend/temp_audio.wav
@@ -14,6 +17,9 @@ AI_Backend/*.wav
 AI_Backend/*.mp3
 AI_Backend/*.m4a
 AI_Backend/*.ogg
+
+# OCR Backend
+OCR_Backend/.pytest_cache/
 
 # IDE
 .vscode/
@@ -25,6 +31,3 @@ Thumbs.db
 
 # Logs
 *.log
-
-.venv/
-*.pyc
