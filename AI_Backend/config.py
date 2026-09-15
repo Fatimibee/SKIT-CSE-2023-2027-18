@@ -10,6 +10,7 @@ NVIDIA_RIVA_FUNCTION_ID = os.getenv(
     "NVIDIA_RIVA_FUNCTION_ID", "0778f2eb-b64d-45e7-acae-7dd9b9b35b4d"
 )
 
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 def check_nvidia_config():
     
