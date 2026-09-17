@@ -51,7 +51,7 @@ export default function AuthPage({ mode = 'signin' }) {
               </h1>
             </div>
             <p className="text-[13px] text-slate-400">
-              Your AI-powered Government Scheme Companion
+              Voice based government scheme assisstent using AI
             </p>
           </div>
 
