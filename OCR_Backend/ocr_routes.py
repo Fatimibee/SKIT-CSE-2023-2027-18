@@ -99,8 +99,9 @@ async def extract_structured_fields(file: Optional[UploadFile] = File(default=No
           "filename": "...",
           "document_type": "Income Certificate",
           "extracted_data": { ...the supported fields, null when unknown... },
-          "verification": {"is_valid": true, "issues": [], ...},
-          "raw_text": "..."
+          "verification": {"is_valid": true, "issues": [], "qr_verified": false},
+          "raw_text": "...",
+          "qr_data": [...]
         }
     Response (failure):
         {"success": false, "filename": "...", "error": "..."}
@@ -120,6 +121,7 @@ async def extract_structured_fields(file: Optional[UploadFile] = File(default=No
     try:
         result = process_document(filename, file_bytes)
         text = result["text"] if isinstance(result, dict) else result
+        qr_data = result.get("qr_data", []) if isinstance(result, dict) else []
     except OCRError as exc:
         return _error_response(filename, str(exc), status_code=422)
     except Exception:
@@ -132,8 +134,8 @@ async def extract_structured_fields(file: Optional[UploadFile] = File(default=No
 
     # --- Step 3: structured field extraction + Step 4: verification ---
     try:
-        extracted_data = extract_fields(text)
-        verification = verify_extracted_data(extracted_data, raw_text=text)
+        extracted_data = extract_fields(text, qr_data=qr_data)
+        verification = verify_extracted_data(extracted_data, raw_text=text, qr_data=qr_data)
     except Exception:
         logger.exception("Unexpected error while extracting fields from '%s'", filename)
         return _error_response(
@@ -149,5 +151,5 @@ async def extract_structured_fields(file: Optional[UploadFile] = File(default=No
         "extracted_data": extracted_data,
         "verification": verification,
         "raw_text": text,
-        "qr_data": result.get("qr_data", []) if isinstance(result, dict) else [],
+        "qr_data": qr_data,
     }

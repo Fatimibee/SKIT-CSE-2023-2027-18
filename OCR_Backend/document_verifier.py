@@ -66,7 +66,7 @@ _UNREADABLE_MESSAGES = {
 }
 
 
-def verify_extracted_data(extracted_data, raw_text=None):
+def verify_extracted_data(extracted_data, raw_text=None, qr_data=None):
     """Run all internal validity checks on a dict of extracted fields.
 
     Args:
@@ -77,6 +77,8 @@ def verify_extracted_data(extracted_data, raw_text=None):
             additionally spot the "the label was there but we could not
             read its value" case and report it as an issue rather than
             silently calling the field missing.
+        qr_data: optional list of decoded QR code string payloads for
+            cross-verification against OCR text.
 
     Returns:
         {
@@ -84,6 +86,7 @@ def verify_extracted_data(extracted_data, raw_text=None):
             "issues": [str, ...],      # invalid information
             "missing_fields": [...],   # not present in the document
             "extracted_fields": [...], # found and valid
+            "qr_verified": bool,       # True if QR payload matches OCR text
         }
     """
     data = dict(extracted_data or {})
@@ -167,6 +170,25 @@ def verify_extracted_data(extracted_data, raw_text=None):
     # --- 8. Labels we saw but could not read ----------------------------
     issues.extend(_find_unreadable_labels(data, raw_text))
 
+    # --- 9. QR Code vs OCR Text Cross-Consistency ------------------------
+    qr_verified = False
+    if qr_data and raw_text:
+        qr_fields = field_extractor.parse_qr_data_fields(qr_data)
+        ocr_only = field_extractor.extract_fields(raw_text)
+
+        qr_name = qr_fields.get("name")
+        ocr_name = ocr_only.get("name")
+
+        if qr_name and ocr_name:
+            c_qr = field_extractor.clean_name(qr_name)
+            c_ocr = field_extractor.clean_name(ocr_name)
+            if c_qr and c_ocr and c_qr.lower() != c_ocr.lower():
+                issues.append("Name in QR code payload does not match name in document text")
+            elif c_qr and c_ocr:
+                qr_verified = True
+        elif qr_name:
+            qr_verified = True
+
     missing_fields, extracted_fields = _split_missing_and_extracted(data)
 
     return {
@@ -174,6 +196,7 @@ def verify_extracted_data(extracted_data, raw_text=None):
         "issues": issues,
         "missing_fields": missing_fields,
         "extracted_fields": extracted_fields,
+        "qr_verified": qr_verified,
     }
 
 

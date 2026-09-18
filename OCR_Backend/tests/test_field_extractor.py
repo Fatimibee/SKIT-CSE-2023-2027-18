@@ -391,3 +391,13 @@ def test_extraction_is_deterministic():
     first = extract_fields(INCOME_CERTIFICATE_TEXT)
     second = extract_fields(INCOME_CERTIFICATE_TEXT)
     assert first == second
+
+
+def test_extract_fields_with_qr_data_populates_missing_fields():
+    qr_payload = '{"name": "Disha Toshniwal", "dob": "15/08/2005", "gender": "Female", "state": "Rajasthan"}'
+    fields = extract_fields("", qr_data=[qr_payload])
+    assert fields["name"] == "Disha Toshniwal"
+    assert fields["date_of_birth"] == "15/08/2005"
+    assert fields["gender"] == "Female"
+    assert fields["state"] == "Rajasthan"
+

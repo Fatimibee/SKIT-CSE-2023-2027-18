@@ -57,7 +57,7 @@ def test_fully_valid_data_passes():
 def test_response_always_has_the_expected_shape():
     result = verify_extracted_data(_fields())
     assert set(result.keys()) == {
-        "is_valid", "issues", "missing_fields", "extracted_fields",
+        "is_valid", "issues", "missing_fields", "extracted_fields", "qr_verified",
     }
 
 
@@ -324,3 +324,24 @@ def test_verification_of_the_canonical_sample_passes_end_to_end():
 
     assert result["is_valid"] is True
     assert result["issues"] == []
+
+
+def test_qr_vs_ocr_mismatch_flags_issue():
+    text = "Name: Rahul Sharma"
+    data = extract_fields(text)
+    qr_payload = '{"name": "Suresh Kumar"}'
+    result = verify_extracted_data(data, raw_text=text, qr_data=[qr_payload])
+
+    assert result["is_valid"] is False
+    assert "Name in QR code payload does not match name in document text" in result["issues"]
+
+
+def test_qr_vs_ocr_match_sets_qr_verified():
+    text = "Name: Rahul Sharma"
+    data = extract_fields(text)
+    qr_payload = '{"name": "Rahul Sharma"}'
+    result = verify_extracted_data(data, raw_text=text, qr_data=[qr_payload])
+
+    assert result["is_valid"] is True
+    assert result["qr_verified"] is True
+

@@ -154,7 +154,7 @@ def test_extract_fields_response_has_all_expected_keys(
         "annual_income", "state", "district", "address", "document_type",
     }
     assert set(body["verification"].keys()) == {
-        "is_valid", "issues", "missing_fields", "extracted_fields",
+        "is_valid", "issues", "missing_fields", "extracted_fields", "qr_verified",
     }
 
 

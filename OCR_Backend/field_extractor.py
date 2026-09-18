@@ -1013,14 +1013,106 @@ def detect_document_type(text):
 
 
 # ===========================================================================
+# QR CODE PAYLOAD PARSING
+# ===========================================================================
+
+import json
+import xml.etree.ElementTree as ET
+
+
+def parse_qr_data_fields(qr_data_list):
+    """Parse a list of QR code string payloads (JSON or XML or key-value format)
+    and return a dict of extracted citizen attributes.
+    """
+    if not qr_data_list:
+        return {}
+
+    extracted = {}
+    for qr_item in qr_data_list:
+        if not qr_item or not isinstance(qr_item, str):
+            continue
+
+        item_str = qr_item.strip()
+
+        # Try JSON parsing
+        if (item_str.startswith("{") and item_str.endswith("}")) or (item_str.startswith("[") and item_str.endswith("]")):
+            try:
+                data = json.loads(item_str)
+                if isinstance(data, dict):
+                    for k, v in data.items():
+                        lk = str(k).lower().replace("_", "").replace("-", "")
+                        v_str = str(v).strip() if v is not None else ""
+                        if not v_str:
+                            continue
+                        if lk in ("name", "applicantname", "username", "fullname"):
+                            extracted["name"] = v_str
+                        elif lk in ("dob", "dateofbirth", "birthdate"):
+                            extracted["date_of_birth"] = v_str
+                        elif lk in ("gender", "sex"):
+                            extracted["gender"] = v_str
+                        elif lk in ("income", "annualincome", "familyincome", "totalincome"):
+                            extracted["annual_income"] = v_str
+                        elif lk in ("category", "caste", "socialcategory"):
+                            extracted["category"] = v_str
+                        elif lk in ("state",):
+                            extracted["state"] = v_str
+                        elif lk in ("district", "dist"):
+                            extracted["district"] = v_str
+                        elif lk in ("address", "addr"):
+                            extracted["address"] = v_str
+                        elif lk in ("doctype", "documenttype"):
+                            extracted["document_type"] = v_str
+            except Exception:
+                pass
+
+        # Try XML parsing (e.g. Aadhaar QR code format)
+        elif "<" in item_str and ">" in item_str:
+            try:
+                if not item_str.startswith("<?xml") and not item_str.startswith("<"):
+                    start_idx = item_str.find("<")
+                    item_str = item_str[start_idx:]
+                root = ET.fromstring(item_str)
+                attribs = root.attrib if hasattr(root, "attrib") and root.attrib else {}
+                if not attribs:
+                    for child in root.iter():
+                        if child.attrib:
+                            attribs.update(child.attrib)
+                for k, v in attribs.items():
+                    lk = k.lower()
+                    if lk in ("name", "n"):
+                        extracted["name"] = v
+                    elif lk in ("dob", "yob"):
+                        extracted["date_of_birth"] = v
+                    elif lk in ("g", "gender"):
+                        extracted["gender"] = v
+                    elif lk in ("state",):
+                        extracted["state"] = v
+                    elif lk in ("dist", "district"):
+                        extracted["district"] = v
+                    elif lk in ("house", "street", "loc", "vtc", "po", "subdist"):
+                        if "address_parts" not in extracted:
+                            extracted["address_parts"] = []
+                        extracted["address_parts"].append(v)
+                extracted["document_type"] = "Aadhaar Card"
+            except Exception:
+                pass
+
+    if "address_parts" in extracted:
+        extracted["address"] = ", ".join(extracted.pop("address_parts"))
+
+    return extracted
+
+
+# ===========================================================================
 # MAIN ENTRY POINT
 # ===========================================================================
 
-def extract_fields(text):
-    """Convert raw OCR text into the structured citizen fields.
+def extract_fields(text, qr_data=None):
+    """Convert raw OCR text and optional QR code data into structured citizen fields.
 
     Args:
         text: raw OCR output (may be None, empty, or very noisy).
+        qr_data: optional list of decoded QR code string payloads.
 
     Returns:
         A dict with exactly the keys in FIELD_NAMES. Every value is either
@@ -1034,39 +1126,63 @@ def extract_fields(text):
     data = {field: None for field in FIELD_NAMES}
     data["document_type"] = detect_document_type(normalized)
 
-    if not normalized:
-        return data
+    if normalized:
+        raw = extract_label_values(normalized)
 
-    raw = extract_label_values(normalized)
+        data["name"] = clean_name(raw["name"])
+        data["date_of_birth"] = extract_date_of_birth(raw["date_of_birth"])
 
-    data["name"] = clean_name(raw["name"])
-    data["date_of_birth"] = extract_date_of_birth(raw["date_of_birth"])
+        # Age: prefer what the document states; otherwise work it out from the
+        # date of birth. Never invented when neither is available.
+        data["age"] = parse_age(raw["age"])
+        if data["age"] is None:
+            data["age"] = calculate_age(data["date_of_birth"])
 
-    # Age: prefer what the document states; otherwise work it out from the
-    # date of birth. Never invented when neither is available.
-    data["age"] = parse_age(raw["age"])
-    if data["age"] is None:
-        data["age"] = calculate_age(data["date_of_birth"])
+        data["gender"] = normalize_gender(raw["gender"])
+        if data["gender"] is None:
+            data["gender"] = find_gender_without_label(normalized)
 
-    data["gender"] = normalize_gender(raw["gender"])
-    if data["gender"] is None:
-        data["gender"] = find_gender_without_label(normalized)
+        data["category"] = normalize_category(raw["category"])
+        data["annual_income"] = parse_income(raw["annual_income"])
 
-    data["category"] = normalize_category(raw["category"])
-    data["annual_income"] = parse_income(raw["annual_income"])
+        data["state"] = normalize_state(raw["state"])
+        if data["state"] is None:
+            data["state"] = find_state_without_label(normalized)
 
-    data["state"] = normalize_state(raw["state"])
-    if data["state"] is None:
-        data["state"] = find_state_without_label(normalized)
+        data["district"] = clean_district(raw["district"])
+        data["address"] = clean_address(raw["address"])
 
-    data["district"] = clean_district(raw["district"])
-    data["address"] = clean_address(raw["address"])
+        # If the document had no "Address:" label but we did find a district
+        # and a state, compose a coarse address from those two extracted
+        # values. This is DERIVED from data already found in the document -
+        # nothing new is invented.
+        if data["address"] is None and data["district"] and data["state"]:
+            data["address"] = f"{data['district']}, {data['state']}"
 
-    # If the document had no "Address:" label but we did find a district
-    # and a state, compose a coarse address from those two extracted
-    # values. This is DERIVED from data already found in the document -
-    # nothing new is invented.
-    if data["address"] is None and data["district"] and data["state"]:
-        data["address"] = f"{data['district']}, {data['state']}"
+    # Merge QR-extracted fields if present (QR payloads provide high precision)
+    if qr_data:
+        qr_fields = parse_qr_data_fields(qr_data)
+        if qr_fields.get("name") and not data["name"]:
+            data["name"] = clean_name(qr_fields["name"])
+        if qr_fields.get("date_of_birth") and not data["date_of_birth"]:
+            parsed_dob = extract_date_of_birth(qr_fields["date_of_birth"])
+            if parsed_dob:
+                data["date_of_birth"] = parsed_dob
+                if data["age"] is None:
+                    data["age"] = calculate_age(parsed_dob)
+        if qr_fields.get("gender") and not data["gender"]:
+            data["gender"] = normalize_gender(qr_fields["gender"])
+        if qr_fields.get("annual_income") is not None and data["annual_income"] is None:
+            data["annual_income"] = parse_income(str(qr_fields["annual_income"]))
+        if qr_fields.get("category") and not data["category"]:
+            data["category"] = normalize_category(qr_fields["category"])
+        if qr_fields.get("state") and not data["state"]:
+            data["state"] = normalize_state(qr_fields["state"])
+        if qr_fields.get("district") and not data["district"]:
+            data["district"] = clean_district(qr_fields["district"])
+        if qr_fields.get("address") and not data["address"]:
+            data["address"] = clean_address(qr_fields["address"])
+        if qr_fields.get("document_type") and data["document_type"] == "Unknown":
+            data["document_type"] = qr_fields["document_type"]
 
     return data
