@@ -67,9 +67,9 @@ export default function Navbar() {
 
             {/* Profile Icon */}
             <Link
-              to="/dashboard"
+              to="/profile"
               className="flex items-center justify-center w-10 h-10 rounded-xl bg-slate-900 border border-white/[0.06] text-slate-300 hover:text-white hover:bg-slate-800 transition-all"
-              title="Profile"
+              title="My Profile"
             >
               <UserCircle className="w-5 h-5" />
             </Link>
