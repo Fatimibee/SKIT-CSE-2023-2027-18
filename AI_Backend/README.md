@@ -1,6 +1,6 @@
 #  Voice Based Government Scheme Assistant using AI - AI Backend
 
-> 🤖 AI-powered backend for processing **voice and text input** and extracting a structured user profile for **government scheme eligibility**.
+> 🤖 AI-powered backend for processing **voice and text input**, extracting a structured user profile, and matching it against government scheme eligibility.
 
 ---
 
@@ -19,7 +19,9 @@
       ↓
 👤 User Profile
       ↓
-✅ Eligibility Engine
+✅ Eligibility Engine (LangGraph)
+      ↓
+🏆 Ranked Scheme Recommendations
 ```
 
 ---
@@ -32,8 +34,12 @@
 | 🌐 `translate.py` | Translates the transcript using NVIDIA Riva |
 | 🔎 `extract.py` | Extracts user profile fields using Regex |
 | 🤖 `extract_with_llm.py` | Extracts user profile using LangChain + Gemini |
-| 📋 `schema.py` | Contains the Pydantic `UserProfile` schema |
+| 📋 `schema.py` | Pydantic `UserProfile` schema (input validation) and LangGraph state schema for the eligibility workflow |
 | ⚙️ `config.py` | Loads API keys and configuration |
+| 🔗 `nodes.py` | LangGraph node functions (parse profile, check eligibility, rank schemes) |
+| 🕸️ `graph.py` | Builds and runs the LangGraph eligibility/recommendation workflow |
+| 🗂️ `schemes_data.py` | Sample government scheme dataset (eligibility rules, benefits, documents) |
+| 🔁 `main_flow.py` | Connects the full pipeline: voice → translate → extract → eligibility → recommendations |
 | 📦 `requirements.txt` | Python dependencies |
 
 ---
@@ -125,6 +131,22 @@ python extract_with_llm.py
 
 Extracts profile information using **LangChain + Google Gemini** with structured output.
 
+### ✅ Eligibility & Recommendation Engine
+
+```powershell
+python graph.py
+```
+
+Runs the LangGraph workflow standalone on a sample profile — checks eligibility and returns ranked scheme recommendations.
+
+### 🔁 Full Pipeline
+
+```powershell
+python main_flow.py
+```
+
+Runs the complete end-to-end flow: records voice, transcribes, translates, extracts a profile, and returns ranked scheme recommendations.
+
 ---
 
 ## 🧩 Tech Stack
@@ -136,6 +158,7 @@ Extracts profile information using **LangChain + Google Gemini** with structured
 | 🌐 **NVIDIA Riva** | Translation |
 | 🦜 **LangChain** | LLM integration |
 | ✨ **Google Gemini** | Profile extraction |
+| 🕸️ **LangGraph** | Eligibility & recommendation workflow orchestration |
 | ✅ **Pydantic** | Data validation |
 | 🔐 **python-dotenv** | Environment configuration |
 
@@ -154,6 +177,10 @@ AI_Backend/
 ├── 🔎 extract.py
 ├── 🤖 extract_with_llm.py
 ├── 📋 schema.py
+├── 🔗 nodes.py
+├── 🕸️ graph.py
+├── 🗂️ schemes_data.py
+├── 🔁 main_flow.py
 ├── 📦 requirements.txt
 └── 📖 README.md
 ```
@@ -182,15 +209,29 @@ AI_Backend/
 
 ---
 
+## ✅ Eligibility & Recommendation Engine
+
+`workflow_schema.py` + `nodes.py` + `graph.py`
+
+Built with **LangGraph**, the engine runs as a 3-step pipeline:
+
+1. **Parse Profile** — normalizes extracted fields (age, income defaults)
+2. **Check Eligibility** — filters schemes from `schemes_data.py` based on profile rules
+3. **Rank Schemes** — sorts eligible schemes by relevance/priority
+
+Currently uses rule-based eligibility checks (age/income); next step is upgrading this to Gemini-based reasoning for more nuanced criteria (occupation, category, state).
+
+---
+
 ## 🚀 Future Improvements
 
-- 🔗 Integrate with the **Eligibility Engine**
-- ⚡ Add **FastAPI APIs**
-- 💬 Add conversational follow-up for missing fields
-- 🏛️ Connect with the government scheme database
-- 🎯 Add scheme matching and ranking
-- 🗄️ Add database persistence
-- 🎙️ Build an end-to-end voice-to-scheme workflow
+- 🧠 Upgrade eligibility checks to use Gemini-based reasoning (beyond age/income)
+- ⚡ Add **FastAPI APIs** to expose the pipeline
+- 💬 Add conversational follow-up for missing profile fields
+- 🏛️ Connect with the real government scheme database (PostgreSQL)
+- 🎯 Improve scheme matching and ranking logic
+- 🗄️ Add database persistence for user profiles & recommendation history
+- 🗣️ Add voice output (TTS) for responses
 
 ---
 
