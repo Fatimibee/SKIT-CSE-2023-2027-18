@@ -35,11 +35,11 @@ export default function SignInForm() {
     if (Object.keys(errs).length > 0) return
 
     setLoading(true)
-    // ──── Mock auth handler — redirect to dashboard after delay ────
+    // ──── Mock auth handler — redirect to landing page after delay ────
     console.log('🔐 Sign In submitted:', { email: form.email, remember })
     setTimeout(() => {
       setLoading(false)
-      navigate('/dashboard')
+      navigate('/')
     }, 1500)
   }
 

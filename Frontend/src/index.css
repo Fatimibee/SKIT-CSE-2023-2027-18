@@ -43,4 +43,7 @@
   .animation-delay-4000 {
     animation-delay: 4s;
   }
+  .high-contrast {
+    filter: contrast(125%) saturate(150%) brightness(110%);
+  }
 }
