@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional  , TypedDict , List , Dict , Any
 
 from pydantic import BaseModel, Field
 
@@ -33,3 +33,15 @@ class UserProfile(BaseModel):
         default=None,
         description="Social category: General, OBC, SC, ST, or EWS."
     )
+
+"""
+ ----------
+State schema for the eligibility + recommendation LangGraph workflow.
+
+"""
+
+class WorkflowState(TypedDict):
+    profile: Dict[str, Any]              # structured user profile (from extract.py)
+    eligible_schemes: List[Dict[str, Any]]  # schemes passing eligibility rules
+    ranked_schemes: List[Dict[str, Any]]    # final sorted recommendations
+ 
