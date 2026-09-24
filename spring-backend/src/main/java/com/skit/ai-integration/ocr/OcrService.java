@@ -1,6 +1,6 @@
-package com.skit.backend.integration.ocr;
+package com.skit.ocr;
 
-import com.skit.backend.integration.ocr.dto.OcrResponseDto;
+import com.skit.ocr.dto.OcrResponseDto;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;

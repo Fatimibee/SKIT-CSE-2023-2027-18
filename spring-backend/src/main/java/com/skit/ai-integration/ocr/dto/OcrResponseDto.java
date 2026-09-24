@@ -1,4 +1,4 @@
-package com.skit.backend.integration.ocr.dto;
+package com.skit.ocr.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
