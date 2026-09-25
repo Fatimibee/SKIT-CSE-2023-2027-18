@@ -5,12 +5,10 @@ All OCR / text-extraction logic and QR code scanning live here, with NO web-fram
 at all (no FastAPI imports here).
 
 Supported inputs:
-- Images (jpg/jpeg/png)          -> OCR directly with pytesseract + QR scanning with OpenCV
+- Images (jpg/jpeg/png)          -> Preprocessed (deskewed, contrast enhanced) -> OCR pytesseract + QR scanning with OpenCV
 - Text-based PDFs (has real text)-> extract text directly (fast, accurate) + QR scanning
-- Scanned/image-based PDFs       -> render each page to an image, then OCR + QR scanning
-
-Everything here works on raw bytes (not file paths), so the caller
-(ocr_routes.py) never needs to save the upload to disk.
+- Scanned/image-based PDFs       -> render each page to an image, preprocess, then OCR + QR scanning
+- Batch documents processing     -> aggregate multiple documents into unified student profile
 """
 
 import io
@@ -24,6 +22,10 @@ from pdf2image import convert_from_bytes
 from pdf2image.exceptions import PDFPageCountError, PDFSyntaxError
 import cv2
 import numpy as np
+
+from image_preprocessor import preprocess_document_image
+from field_extractor import extract_fields
+from document_verifier import verify_extracted_data
 
 logger = logging.getLogger(__name__)
 
@@ -74,9 +76,11 @@ def extract_qr_codes_from_image(image: Image.Image) -> List[str]:
 
 
 def extract_text_from_image(file_bytes: bytes) -> str:
-    """Run OCR on raw image bytes (jpg/jpeg/png) and return extracted text."""
+    """Run OCR on raw image bytes (jpg/jpeg/png) after preprocessing."""
+    # Preprocess image (deskew, contrast enhancement)
+    processed_bytes = preprocess_document_image(file_bytes)
     try:
-        image = Image.open(io.BytesIO(file_bytes))
+        image = Image.open(io.BytesIO(processed_bytes))
         image.load()
     except UnidentifiedImageError:
         raise OCRError("This does not appear to be a valid image file.")
@@ -181,6 +185,8 @@ def process_document(filename: str, file_bytes: bytes) -> Dict[str, Any]:
     qr_codes = []
 
     if extension in ("jpg", "jpeg", "png"):
+        # Preprocess image to enhance OCR quality
+        file_bytes = preprocess_document_image(file_bytes)
         try:
             image = Image.open(io.BytesIO(file_bytes))
             image.load()
@@ -240,3 +246,70 @@ def process_document(filename: str, file_bytes: bytes) -> Dict[str, Any]:
         )
 
     return {"text": text, "qr_data": unique_qr_codes}
+
+
+def process_batch_documents(files_data: List[Tuple[str, bytes]]) -> Dict[str, Any]:
+    """
+    Processes a batch of multiple uploaded documents (e.g. Aadhaar + Income Cert + Caste Cert).
+    Combines extracted fields and aggregate verification results into a unified profile.
+
+    :param files_data: List of (filename, file_bytes) tuples
+    :return: Aggregated JSON dictionary with combined fields and per-document summaries
+    """
+    if not files_data:
+        raise OCRError("No files provided for batch processing.")
+
+    combined_fields = {
+        "name": None,
+        "dob": None,
+        "gender": None,
+        "category": None,
+        "income": None,
+        "state": None,
+        "district": None,
+        "address": None,
+        "document_type": None,
+    }
+
+    processed_docs = []
+    overall_valid = True
+    overall_qr_verified = True
+    all_issues = []
+
+    for filename, file_bytes in files_data:
+        doc_res = process_document(filename, file_bytes)
+        text = doc_res["text"]
+        qr_data = doc_res["qr_data"]
+
+        fields = extract_fields(text, qr_data=qr_data)
+        verification = verify_extracted_data(fields, qr_data=qr_data)
+
+        # Merge extracted fields (non-null values override prior nulls)
+        for key, val in fields.items():
+            if val is not None and combined_fields.get(key) is None:
+                combined_fields[key] = val
+
+        if not verification.get("is_valid", True):
+            overall_valid = False
+        if not verification.get("qr_verified", True):
+            overall_qr_verified = False
+
+        all_issues.extend(verification.get("issues", []))
+
+        processed_docs.append({
+            "filename": filename,
+            "extracted_fields": fields,
+            "verification": verification,
+        })
+
+    return {
+        "status": "success",
+        "total_documents": len(files_data),
+        "combined_extracted_fields": combined_fields,
+        "overall_verification": {
+            "is_valid": overall_valid,
+            "qr_verified": overall_qr_verified,
+            "issues": list(dict.fromkeys(all_issues)),
+        },
+        "documents": processed_docs,
+    }

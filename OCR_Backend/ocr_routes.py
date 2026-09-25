@@ -8,19 +8,20 @@ response. No OCR logic should live in this file.
 Exposes:
     POST /ocr/extract          -> raw extracted text & QR code data
     POST /ocr/extract-fields   -> structured fields + verification
+    POST /ocr/extract-batch    -> batch processing of multiple uploaded documents
 
-Both take multipart/form-data with the field name "file".
+Both take multipart/form-data.
 """
 
 import logging
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import APIRouter, File, UploadFile
 from fastapi.responses import JSONResponse
 
 from document_verifier import verify_extracted_data
 from field_extractor import extract_fields
-from ocr_service import process_document, OCRError
+from ocr_service import process_document, process_batch_documents, OCRError
 from validators import validate_upload
 
 logger = logging.getLogger(__name__)
@@ -105,9 +106,6 @@ async def extract_structured_fields(file: Optional[UploadFile] = File(default=No
         }
     Response (failure):
         {"success": false, "filename": "...", "error": "..."}
-
-    NOTE: "verification" is local/internal validation only. It does NOT
-    check the document against any government database.
     """
     filename = file.filename if file else None
     file_bytes = await file.read() if file else None
@@ -152,4 +150,47 @@ async def extract_structured_fields(file: Optional[UploadFile] = File(default=No
         "verification": verification,
         "raw_text": text,
         "qr_data": qr_data,
+    }
+
+
+# ---------------------------------------------------------------------------
+# POST /ocr/extract-batch
+# ---------------------------------------------------------------------------
+@router.post("/extract-batch")
+async def extract_batch_fields(files: List[UploadFile] = File(...)):
+    """
+    Accepts multiple uploaded documents (e.g. Aadhaar + Income Cert + Caste Cert)
+    and aggregates all extracted details into a single unified profile.
+
+    Request:  multipart/form-data, field "files"
+    """
+    if not files:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": "No files uploaded for batch processing."},
+        )
+
+    files_data = []
+    for file in files:
+        filename = file.filename
+        file_bytes = await file.read()
+        is_valid, error_message = validate_upload(filename, file_bytes)
+        if not is_valid:
+            return _error_response(filename or "unknown", error_message, status_code=400)
+        files_data.append((filename, file_bytes))
+
+    try:
+        batch_result = process_batch_documents(files_data)
+    except OCRError as exc:
+        return JSONResponse(status_code=422, content={"success": False, "error": str(exc)})
+    except Exception:
+        logger.exception("Unexpected error during batch document processing")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": "An unexpected error occurred during batch processing."},
+        )
+
+    return {
+        "success": True,
+        "batch_result": batch_result,
     }
