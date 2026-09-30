@@ -5,6 +5,7 @@ import AuthPage from './pages/AuthPage'
 import DashboardPage from './pages/DashboardPage'
 import ProfilePage from './pages/ProfilePage'
 import VoiceAssistantPage from './pages/VoiceAssistantPage'
+import SchemesPage from './pages/SchemesPage'
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
       <Route path="/dashboard" element={<DashboardPage />} />
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/voice" element={<VoiceAssistantPage />} />
+      <Route path="/schemes" element={<SchemesPage />} />
       {/* Redirect all unknown routes to landing page */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

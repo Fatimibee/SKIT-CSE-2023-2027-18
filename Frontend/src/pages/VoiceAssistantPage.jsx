@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Mic, MicOff, Volume2, VolumeX, RotateCcw,
+  Mic, Volume2, VolumeX, RotateCcw,
   ChevronLeft, AudioWaveform, FileText,
   Sparkles, Globe, IndianRupee, ArrowRight,
-  Bookmark, BookmarkCheck,
+  Bookmark, BookmarkCheck, X, LayoutGrid,
 } from 'lucide-react'
 
 /* ------------------------------------------------------------------ */
@@ -43,6 +43,12 @@ const DEMO_TURNS = [
     },
   },
 ]
+
+/* ------------------------------------------------------------------ */
+/*  Discoverable Government Schemes                                     */
+/* ------------------------------------------------------------------ */
+
+
 
 /* ------------------------------------------------------------------ */
 /*  Audio Wave Bars                                                     */
@@ -279,54 +285,6 @@ function InlineSchemeCard({ scheme, savedIds, onToggleSave }) {
   )
 }
 
-/* ------------------------------------------------------------------ */
-/*  Desktop Sidebar Scheme Card                                         */
-/* ------------------------------------------------------------------ */
-
-function SidebarSchemeCard({ scheme, savedIds, onToggleSave }) {
-  const isSaved = savedIds.has(scheme.id)
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 18, scale: .97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 10 }}
-      transition={{ duration: .32, ease: 'easeOut' }}
-      className="w-full rounded-2xl border border-white/[0.08] bg-slate-900/80 backdrop-blur-sm overflow-hidden shadow-xl"
-    >
-      <div className={`h-1.5 bg-gradient-to-r ${scheme.gradient}`} />
-      <div className="p-4">
-        <div className="flex items-start gap-3">
-          <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${scheme.gradient} flex items-center justify-center flex-shrink-0 shadow-lg`}>
-            <IndianRupee className="w-5 h-5 text-white" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[13px] font-bold text-white leading-tight truncate">{scheme.title}</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">{scheme.category}</p>
-              </div>
-              <motion.button
-                id={`scheme-save-${scheme.id}`}
-                onClick={() => onToggleSave(scheme.id)}
-                whileTap={{ scale: .85 }}
-                className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center border transition-all ${isSaved ? 'bg-teal-500/20 border-teal-500/40 text-teal-400' : 'bg-slate-800/60 border-white/[0.07] text-slate-500 hover:text-teal-400'}`}
-              >
-                {isSaved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
-              </motion.button>
-            </div>
-            <div className="mt-2">
-              <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${scheme.status === 'Eligible' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' : 'text-amber-400 bg-amber-400/10 border-amber-400/20'}`}>{scheme.status}</span>
-            </div>
-          </div>
-        </div>
-        <div className="mt-3 pt-3 border-t border-white/[0.05] flex items-center justify-between gap-2">
-          <span className="text-[12px] font-semibold text-white bg-teal-500/15 border border-teal-500/25 px-2.5 py-1 rounded-full">{scheme.payout}</span>
-          <button className="text-[11px] text-teal-400 hover:text-teal-300 flex items-center gap-1 transition-colors">View Details <ArrowRight className="w-3 h-3" /></button>
-        </div>
-      </div>
-    </motion.div>
-  )
-}
 
 /* ------------------------------------------------------------------ */
 /*  Main Page                                                           */
@@ -335,7 +293,6 @@ function SidebarSchemeCard({ scheme, savedIds, onToggleSave }) {
 export default function VoiceAssistantPage() {
   const navigate = useNavigate()
   const [voiceState, setVoiceState] = useState('IDLE')
-  const [muted, setMuted] = useState(false)
   const [paused, setPaused] = useState(false)
   const [transcript, setTranscript] = useState('')
   const [aiResponse, setAiResponse] = useState('')
@@ -442,6 +399,15 @@ export default function VoiceAssistantPage() {
             <span className={`w-1.5 h-1.5 rounded-full ${voiceState === 'LISTENING' ? 'bg-teal-400 animate-pulse' : voiceState === 'PROCESSING' ? 'bg-indigo-400 animate-pulse' : voiceState === 'SPEAKING' ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}`} />
             <span className={`text-[11px] font-medium ${statusColors[voiceState]}`}>{statusMap[voiceState]}</span>
           </motion.div>
+
+          {/* Schemes Button */}
+          <button 
+            onClick={() => navigate('/schemes')}
+            className="hidden xs:flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-teal-500/30 bg-teal-500/10 text-teal-400 text-[12px] font-semibold hover:bg-teal-500/20 transition-colors"
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            Discover Schemes
+          </button>
 
           {/* Language picker */}
           <div className="relative">
@@ -578,45 +544,111 @@ export default function VoiceAssistantPage() {
           </AnimatePresence>
         </div>
 
-        {/* DESKTOP SIDEBAR */}
-        <aside className="hidden lg:flex w-[340px] xl:w-[380px] flex-shrink-0 flex-col border-l border-white/[0.06] bg-slate-950/50 backdrop-blur-md">
-          <div className="px-5 pt-5 pb-3 flex-shrink-0 border-b border-white/[0.05]">
-            <div className="flex items-center gap-2 mb-0.5">
-              <div className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
-              <h2 className="text-[13px] font-bold text-white tracking-tight">Suggested Schemes</h2>
-            </div>
-            <p className="text-[11px] text-slate-500">Based on your conversation</p>
-          </div>
-          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-            <AnimatePresence initial={false}>
-              {suggestedSchemes.length === 0 ? (
-                <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center gap-4 py-20 text-center">
-                  <div className="w-16 h-16 rounded-2xl border border-white/[0.06] bg-slate-800/40 flex items-center justify-center"><Bookmark className="w-7 h-7 text-slate-600" /></div>
-                  <p className="text-[13px] text-slate-500 max-w-[180px] leading-relaxed">Speak to YojVani and relevant schemes will appear here.</p>
-                </motion.div>
-              ) : suggestedSchemes.map(s => <SidebarSchemeCard key={s.id} scheme={s} savedIds={savedIds} onToggleSave={handleToggleSave} />)}
-            </AnimatePresence>
-          </div>
-          <AnimatePresence>
-            {savedIds.size > 0 && (
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mx-5 mb-5 flex-shrink-0">
-                <div className="rounded-xl border border-teal-500/20 bg-teal-500/[0.07] px-4 py-2.5 flex items-center gap-2">
-                  <BookmarkCheck className="w-4 h-4 text-teal-400 flex-shrink-0" />
-                  <span className="text-[12px] text-teal-300 font-medium">{savedIds.size} scheme{savedIds.size > 1 ? 's' : ''} saved</span>
+        {/* DESKTOP SUGGESTED SCHEMES PANEL */}
+        <AnimatePresence>
+          {suggestedSchemes.length > 0 && (
+            <motion.aside
+              key="schemes-panel"
+              initial={{ opacity: 0, x: 60, width: 0 }}
+              animate={{ opacity: 1, x: 0, width: 320 }}
+              exit={{ opacity: 0, x: 60, width: 0 }}
+              transition={{ duration: 0.35, ease: 'easeOut' }}
+              className="hidden lg:flex flex-col flex-shrink-0 border-l border-white/[0.06] bg-slate-950/60 backdrop-blur-md overflow-hidden"
+              style={{ width: 320 }}
+            >
+              {/* Panel header */}
+              <div className="flex-shrink-0 px-5 pt-5 pb-3 border-b border-white/[0.05]">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <motion.div
+                    className="w-2 h-2 rounded-full bg-emerald-400"
+                    animate={{ scale: [1, 1.4, 1], opacity: [0.7, 1, 0.7] }}
+                    transition={{ duration: 1.4, repeat: Infinity }}
+                  />
+                  <h2 className="text-[13px] font-bold text-white tracking-tight">Eligible Schemes</h2>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </aside>
+                <p className="text-[11px] text-slate-500">Based on your conversation</p>
+              </div>
+
+              {/* Scrollable scheme cards */}
+              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(20,184,166,0.15) transparent' }}>
+                <AnimatePresence initial={false}>
+                  {suggestedSchemes.map((scheme, idx) => {
+                    const isSaved = savedIds.has(scheme.id)
+                    return (
+                      <motion.div
+                        key={scheme.id}
+                        initial={{ opacity: 0, y: 18, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.97 }}
+                        transition={{ duration: 0.32, delay: idx * 0.06, ease: 'easeOut' }}
+                        className="w-full rounded-2xl border border-white/[0.08] bg-slate-900/80 backdrop-blur-sm overflow-hidden shadow-xl"
+                      >
+                        <div className={`h-1.5 bg-gradient-to-r ${scheme.gradient}`} />
+                        <div className="p-4">
+                          <div className="flex items-start gap-3">
+                            <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${scheme.gradient} flex items-center justify-center flex-shrink-0 shadow-lg`}>
+                              <IndianRupee className="w-5 h-5 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="text-[13px] font-bold text-white leading-tight truncate">{scheme.title}</p>
+                                  <p className="text-[11px] text-slate-500 mt-0.5">{scheme.category}</p>
+                                </div>
+                                <motion.button
+                                  id={`aside-scheme-save-${scheme.id}`}
+                                  onClick={() => handleToggleSave(scheme.id)}
+                                  whileTap={{ scale: 0.85 }}
+                                  className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center border transition-all ${
+                                    isSaved
+                                      ? 'bg-teal-500/20 border-teal-500/40 text-teal-400'
+                                      : 'bg-slate-800/60 border-white/[0.07] text-slate-500 hover:text-teal-400'
+                                  }`}
+                                >
+                                  {isSaved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+                                </motion.button>
+                              </div>
+                              <div className="mt-2">
+                                <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
+                                  scheme.status === 'Eligible'
+                                    ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20'
+                                    : 'text-amber-400 bg-amber-400/10 border-amber-400/20'
+                                }`}>{scheme.status}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-3 pt-3 border-t border-white/[0.05] flex items-center justify-between gap-2">
+                            <span className="text-[12px] font-semibold text-white bg-teal-500/15 border border-teal-500/25 px-2.5 py-1 rounded-full">{scheme.payout}</span>
+                            <button className="text-[11px] text-teal-400 hover:text-teal-300 flex items-center gap-1 transition-colors">Details <ArrowRight className="w-3 h-3" /></button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )
+                  })}
+                </AnimatePresence>
+              </div>
+
+              {/* Saved count */}
+              <AnimatePresence>
+                {savedIds.size > 0 && (
+                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mx-4 mb-4 flex-shrink-0">
+                    <div className="rounded-xl border border-teal-500/20 bg-teal-500/[0.07] px-4 py-2.5 flex items-center gap-2">
+                      <BookmarkCheck className="w-4 h-4 text-teal-400 flex-shrink-0" />
+                      <span className="text-[12px] text-teal-300 font-medium">{savedIds.size} scheme{savedIds.size > 1 ? 's' : ''} saved</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.aside>
+          )}
+        </AnimatePresence>
+
       </div>
 
       {/* ── DESKTOP FOOTER ── */}
       <footer className="relative z-20 hidden lg:block w-full px-4 sm:px-6 py-4 border-t border-white/[0.06] bg-slate-950/60 backdrop-blur-xl">
         <div className="max-w-md mx-auto flex items-center justify-center gap-6">
-          <button id="voice-mute-btn" onClick={() => setMuted(m => !m)} className="flex flex-col items-center gap-1.5 group">
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-all ${muted ? 'bg-red-500/15 border-red-500/30 text-red-400' : 'bg-slate-800/80 border-white/[0.06] text-slate-400 group-hover:text-white group-hover:bg-slate-700/80'}`}>{muted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}</div>
-            <span className="text-[10px] text-slate-600 group-hover:text-slate-400 transition-colors">{muted ? 'Unmute' : 'Mute'}</span>
-          </button>
+
           <button id="voice-pause-btn" onClick={() => setPaused(p => !p)} className="flex flex-col items-center gap-1.5 group">
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-all ${paused ? 'bg-amber-500/15 border-amber-500/30 text-amber-400' : 'bg-slate-800/80 border-white/[0.06] text-slate-400 group-hover:text-white group-hover:bg-slate-700/80'}`}>{paused ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}</div>
             <span className="text-[10px] text-slate-600 group-hover:text-slate-400 transition-colors">{paused ? 'Resume' : 'Pause'}</span>
@@ -630,9 +662,7 @@ export default function VoiceAssistantPage() {
 
       {/* ── MOBILE FOOTER ── */}
       <footer className="relative z-20 lg:hidden w-full px-4 py-3 border-t border-white/[0.06] bg-slate-950/80 backdrop-blur-xl flex items-center justify-between gap-3">
-        <button id="voice-mute-mob-btn" onClick={() => setMuted(m => !m)} className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-[12px] font-medium transition-all ${muted ? 'bg-red-500/15 border-red-500/30 text-red-400' : 'bg-slate-800/80 border-white/[0.06] text-slate-400'}`}>
-          {muted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}{muted ? 'Unmute' : 'Mute'}
-        </button>
+
         <button id="voice-pause-mob-btn" onClick={() => setPaused(p => !p)} className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-[12px] font-medium transition-all ${paused ? 'bg-amber-500/15 border-amber-500/30 text-amber-400' : 'bg-slate-800/80 border-white/[0.06] text-slate-400'}`}>
           {paused ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}{paused ? 'Resume' : 'Pause'}
         </button>
@@ -641,6 +671,26 @@ export default function VoiceAssistantPage() {
         </button>
       </footer>
 
+      {/* ── SCHEMES FLOATING BUTTON (bottom-right, both layouts) ── */}
+      <motion.button
+        id="schemes-fab-btn"
+        onClick={() => navigate('/schemes')}
+        whileHover={{ scale: 1.07 }}
+        whileTap={{ scale: 0.92 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4, duration: 0.4, ease: 'easeOut' }}
+        className="fixed bottom-20 right-5 z-40 lg:bottom-24 lg:right-8 flex items-center gap-2 pl-3.5 pr-4 py-2.5 rounded-2xl shadow-2xl border border-teal-500/30 text-white font-semibold text-[13px] cursor-pointer select-none"
+        style={{
+          background: 'linear-gradient(135deg,#0f766e 0%,#059669 100%)',
+          boxShadow: '0 8px 32px rgba(20,184,166,0.35), 0 2px 8px rgba(0,0,0,0.4)',
+        }}
+      >
+        <LayoutGrid className="w-4 h-4 text-white" />
+        <span>Discover Schemes</span>
+      </motion.button>
+
     </div>
   )
 }
+
