@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage'
 import ProfilePage from './pages/ProfilePage'
 import VoiceAssistantPage from './pages/VoiceAssistantPage'
 import SchemesPage from './pages/SchemesPage'
+import ChatPage from './pages/ChatPage'
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
       <Route path="/signup" element={<AuthPage mode="signup" />} />
       <Route path="/dashboard" element={<DashboardPage />} />
       <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/chat" element={<ChatPage />} />
       <Route path="/voice" element={<VoiceAssistantPage />} />
       <Route path="/schemes" element={<SchemesPage />} />
       {/* Redirect all unknown routes to landing page */}
