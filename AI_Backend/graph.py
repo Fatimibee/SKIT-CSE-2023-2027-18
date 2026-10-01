@@ -32,7 +32,7 @@ _compiled_graph = build_graph()
 
 def run_recommendation_workflow(profile: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Entry point used by the rest of the app (main_flow.py, FastAPI main.py).
+      Entry point used by the rest of the app (main_flow.py, FastAPI main.py).
     Takes a structured profile and returns ranked scheme recommendations.
     """
     initial_state: WorkflowState = {
