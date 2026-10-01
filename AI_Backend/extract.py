@@ -126,7 +126,7 @@ def extract_profile(transcript) ->dict :
         "category": _extract_category(transcript),
     }
 
-    missing_fields = [f for f in REQUIRED_FIELDS if not profile.get(f)]
+    missing_fields = [f for f in REQUIRED_FIELDS if  profile.get(f) is None]
 
     return {
         "profile" : profile ,

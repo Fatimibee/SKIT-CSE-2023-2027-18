@@ -19,9 +19,9 @@ Requires (same folder):
 
 from voice_input import record_and_transcribe
 from translate import translate_text
-from extract import extract_profile
+from extract_with_llm import extract_profile
 from graph import run_recommendation_workflow
-
+from follow_up import resolve_missing_fields
 
 def run_full_flow(source_lang: str = "hi") -> dict:
     """
@@ -52,14 +52,15 @@ def run_full_flow(source_lang: str = "hi") -> dict:
     print("Missing fields:", missing_fields)
 
     if missing_fields:
-        print(f"\n⚠️  Cannot run eligibility check — missing: {', '.join(missing_fields)}")
-        return {
-            "transcript": transcript,
-            "translated_text": translated_text,
-            "profile": profile,
-            "missing_fields": missing_fields,
-            "recommendations": None,
-        }
+        print(f"\n⚠️  Missing fields detected: {', '.join(missing_fields)}")
+        print("STEP 3b: Asking follow-up questions to fill in the gaps...")
+        profile = resolve_missing_fields(profile, missing_fields, source_lang=source_lang)
+        missing_fields = [f for f in missing_fields if not profile.get(f)]
+        print("\nUpdated profile:", profile)
+ 
+        if missing_fields:
+            print(f"⚠️  Still incomplete after follow-up: {', '.join(missing_fields)}")
+            print("   Proceeding anyway — recommendations may be less accurate.")
 
     # 4. Structured profile -> eligibility + ranked schemes (LangGraph)
     print("\nSTEP 4: Running eligibility & recommendation engine...")
