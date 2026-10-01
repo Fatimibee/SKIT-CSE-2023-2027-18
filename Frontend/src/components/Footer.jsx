@@ -33,7 +33,7 @@ export default function Footer() {
             <ul className="space-y-2">
               <li><Link to="/voice" className="text-sm hover:text-white transition-colors">Voice Tool</Link></li>
               <li><Link to="/chat" className="text-sm hover:text-white transition-colors">Text Chat</Link></li>
-              <li><Link to="/form-upload" className="text-sm hover:text-white transition-colors">Form Upload</Link></li>
+              <li><Link to="/document-upload" className="text-sm hover:text-white transition-colors">Document Upload</Link></li>
               <li><a href="#schemes" className="text-sm hover:text-white transition-colors">Scheme Directory</a></li>
               <li><a href="#faqs" className="text-sm hover:text-white transition-colors">FAQs</a></li>
             </ul>

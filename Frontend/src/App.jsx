@@ -7,6 +7,7 @@ import ProfilePage from './pages/ProfilePage'
 import VoiceAssistantPage from './pages/VoiceAssistantPage'
 import SchemesPage from './pages/SchemesPage'
 import ChatPage from './pages/ChatPage'
+import DocumentUploadPage from './pages/DocumentUploadPage'
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
       <Route path="/chat" element={<ChatPage />} />
       <Route path="/voice" element={<VoiceAssistantPage />} />
       <Route path="/schemes" element={<SchemesPage />} />
+      <Route path="/document-upload" element={<DocumentUploadPage />} />
       {/* Redirect all unknown routes to landing page */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

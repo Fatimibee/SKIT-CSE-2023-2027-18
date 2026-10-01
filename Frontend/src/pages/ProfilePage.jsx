@@ -448,7 +448,7 @@ export default function ProfilePage() {
               <div className="space-y-1">
                 {[
                   { label: 'Voice Query',    icon: Mic,      to: '/voice',       color: 'text-teal-400',   bg: 'bg-teal-400/10' },
-                  { label: 'Scan Documents', icon: FileText, to: '/form-upload', color: 'text-indigo-400', bg: 'bg-indigo-400/10' },
+                  { label: 'Upload Documents', icon: FileText, to: '/document-upload', color: 'text-indigo-400', bg: 'bg-indigo-400/10' },
                   { label: 'Browse Schemes', icon: Search,   to: '/',            color: 'text-purple-400', bg: 'bg-purple-400/10' },
                   { label: 'Notifications',  icon: Bell,     to: '#',            color: 'text-amber-400',  bg: 'bg-amber-400/10' },
                 ].map((item) => (

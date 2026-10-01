@@ -81,7 +81,7 @@ export default function LandingPage() {
 
                 {/* Form Interaction */}
                 <button 
-                  onClick={() => navigate('/form-upload')}
+                  onClick={() => navigate('/document-upload')}
                   className="group relative flex flex-col items-center gap-4 p-6 bg-slate-800/50 hover:bg-slate-800 border border-white/[0.05] hover:border-purple-500/50 rounded-2xl transition-all duration-300 border-dashed"
                 >
                   <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center shadow-lg shadow-purple-500/30 group-hover:-translate-y-1 transition-transform">
@@ -183,8 +183,8 @@ export default function LandingPage() {
                 <p className="text-sm text-slate-400 leading-relaxed mb-8">
                   Upload PDF/JPG forms or IDs to check criteria and get completion steps. Auto-fill guidance based on your uploaded documents.
                 </p>
-                <Link to="/form-upload" className="inline-flex items-center gap-2 text-purple-400 font-medium hover:text-purple-300 transition-colors text-sm">
-                  Upload Form <ArrowRight className="w-4 h-4" />
+                <Link to="/document-upload" className="inline-flex items-center gap-2 text-purple-400 font-medium hover:text-purple-300 transition-colors text-sm">
+                  Upload Document <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
 

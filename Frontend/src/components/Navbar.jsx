@@ -29,7 +29,7 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-8">
             <Link to="/voice" className="text-[14px] font-medium text-slate-300 hover:text-teal-400 transition-colors">Voice Mode</Link>
             <Link to="/chat" className="text-[14px] font-medium text-slate-300 hover:text-teal-400 transition-colors">Text Chat</Link>
-            <Link to="/form-upload" className="text-[14px] font-medium text-slate-300 hover:text-teal-400 transition-colors">Form Scanner</Link>
+            <Link to="/document-upload" className="text-[14px] font-medium text-slate-300 hover:text-teal-400 transition-colors">Document Upload</Link>
             <Link to="/schemes" className="text-[14px] font-medium text-slate-300 hover:text-teal-400 transition-colors">Schemes Directory</Link>
             <a href="#how-it-works" className="text-[14px] font-medium text-slate-300 hover:text-teal-400 transition-colors">How It Works</a>
           </div>
