@@ -1,6 +1,6 @@
 #  Voice Based Government Scheme Assistant using AI - AI Backend
 
-> 🤖 AI-powered backend for processing **voice and text input**, extracting a structured user profile, and matching it against government scheme eligibility.
+> 🤖 AI-powered backend for processing **voice and text input**, extracting a structured user profile, checking eligibility, and speaking back recommended government schemes.
 
 ---
 
@@ -15,13 +15,17 @@
       ↓
 🌐 NVIDIA Riva (Translation)
       ↓
-🧠 Profile Extraction
+🧠 Profile Extraction (Gemini / Regex)
       ↓
 👤 User Profile
       ↓
-✅ Eligibility Engine (LangGraph)
+❓ Follow-up Questions (for missing fields)
+      ↓
+✅ Eligibility Engine (LangGraph + Gemini)
       ↓
 🏆 Ranked Scheme Recommendations
+      ↓
+🔊 Voice Output (TTS)
 ```
 
 ---
@@ -34,12 +38,15 @@
 | 🌐 `translate.py` | Translates the transcript using NVIDIA Riva |
 | 🔎 `extract.py` | Extracts user profile fields using Regex |
 | 🤖 `extract_with_llm.py` | Extracts user profile using LangChain + Gemini |
-| 📋 `schema.py` | Pydantic `UserProfile` schema (input validation) and LangGraph state schema for the eligibility workflow |
+| ❓ `follow_up.py` | Asks follow-up questions (voice) to fill in missing profile fields |
+| 🔊 `tts.py` | Converts assistant responses to speech (gTTS, bilingual Hindi/English) |
+| 📋 `schema.py` | Pydantic `UserProfile` schema and LangGraph workflow state schema |
 | ⚙️ `config.py` | Loads API keys and configuration |
 | 🔗 `nodes.py` | LangGraph node functions (parse profile, check eligibility, rank schemes) |
 | 🕸️ `graph.py` | Builds and runs the LangGraph eligibility/recommendation workflow |
-| 🗂️ `schemes_data.py` | Sample government scheme dataset (eligibility rules, benefits, documents) |
-| 🔁 `main_flow.py` | Connects the full pipeline: voice → translate → extract → eligibility → recommendations |
+| 🗂️ `schemes_data.py` | Government scheme dataset (eligibility rules, benefits, documents) — temporary local data until Divyansh's Scheme API is ready |
+| 🔁 `main_flow.py` | Connects the full pipeline: voice → translate → extract → follow-up → eligibility → recommendations |
+| 📄 `generate_report.py` | Generates a project/status report |
 | 📦 `requirements.txt` | Python dependencies |
 
 ---
@@ -91,6 +98,9 @@ FFMPEG_PATH = your_FFMPEG_PATH
 NVIDIA_API_KEY=your_nvidia_api_key
 NVIDIA_RIVA_SERVER=your_riva_server
 NVIDIA_RIVA_FUNCTION_ID=your_function_id
+
+# Scheme Data API (once Divyansh's backend is ready)
+SCHEME_API_URL=your_scheme_api_url
 ```
 
 > ⚠️ **Never commit `.env` or API keys to GitHub.**
@@ -105,7 +115,7 @@ NVIDIA_RIVA_FUNCTION_ID=your_function_id
 python voice_input.py
 ```
 
-Captures audio and converts speech into a transcript using **Whisper**.
+Captures audio and converts speech into a transcript using **Whisper**. Run `find_working_mic()` inside this file first if your mic isn't picking up sound correctly.
 
 ### 🌐 Translation
 
@@ -131,13 +141,21 @@ python extract_with_llm.py
 
 Extracts profile information using **LangChain + Google Gemini** with structured output.
 
+### 🔊 Text-to-Speech
+
+```powershell
+python tts.py
+```
+
+Speaks sample English and Hindi text out loud using **gTTS**.
+
 ### ✅ Eligibility & Recommendation Engine
 
 ```powershell
 python graph.py
 ```
 
-Runs the LangGraph workflow standalone on a sample profile — checks eligibility and returns ranked scheme recommendations.
+Runs the LangGraph workflow standalone on a sample profile — checks eligibility (single batched Gemini call) and returns ranked scheme recommendations.
 
 ### 🔁 Full Pipeline
 
@@ -145,7 +163,7 @@ Runs the LangGraph workflow standalone on a sample profile — checks eligibilit
 python main_flow.py
 ```
 
-Runs the complete end-to-end flow: records voice, transcribes, translates, extracts a profile, and returns ranked scheme recommendations.
+Runs the complete end-to-end flow: records voice, transcribes, translates, extracts a profile, asks follow-up questions for any missing fields, and returns ranked scheme recommendations.
 
 ---
 
@@ -157,8 +175,9 @@ Runs the complete end-to-end flow: records voice, transcribes, translates, extra
 | 🎙️ **OpenAI Whisper** | Speech-to-Text |
 | 🌐 **NVIDIA Riva** | Translation |
 | 🦜 **LangChain** | LLM integration |
-| ✨ **Google Gemini** | Profile extraction |
+| ✨ **Google Gemini** | Profile extraction & eligibility reasoning |
 | 🕸️ **LangGraph** | Eligibility & recommendation workflow orchestration |
+| 🔊 **gTTS** | Text-to-speech (bilingual Hindi/English) |
 | ✅ **Pydantic** | Data validation |
 | 🔐 **python-dotenv** | Environment configuration |
 
@@ -176,11 +195,14 @@ AI_Backend/
 ├── 🌐 translate.py
 ├── 🔎 extract.py
 ├── 🤖 extract_with_llm.py
+├── ❓ follow_up.py
+├── 🔊 tts.py
 ├── 📋 schema.py
 ├── 🔗 nodes.py
 ├── 🕸️ graph.py
 ├── 🗂️ schemes_data.py
 ├── 🔁 main_flow.py
+├── 📄 generate_report.py
 ├── 📦 requirements.txt
 └── 📖 README.md
 ```
@@ -211,27 +233,46 @@ AI_Backend/
 
 ## ✅ Eligibility & Recommendation Engine
 
-`workflow_schema.py` + `nodes.py` + `graph.py`
+`schema.py` + `nodes.py` + `graph.py`
 
 Built with **LangGraph**, the engine runs as a 3-step pipeline:
 
 1. **Parse Profile** — normalizes extracted fields (age, income defaults)
-2. **Check Eligibility** — filters schemes from `schemes_data.py` based on profile rules
+2. **Check Eligibility** — sends the full profile + all schemes to Gemini in a **single batched call** (not one call per scheme), with a rule-based fallback if parsing fails
 3. **Rank Schemes** — sorts eligible schemes by relevance/priority
 
-Currently uses rule-based eligibility checks (age/income); next step is upgrading this to Gemini-based reasoning for more nuanced criteria (occupation, category, state).
+Scheme data currently comes from a local dataset (`schemes_data.py`) and will switch to Divyansh's live Scheme API once ready — only `SCHEME_API_URL` in `.env` needs to change.
+
+---
+
+## ❓ Follow-up Question Handling
+
+`follow_up.py`
+
+If required profile fields (age, income, etc.) are missing after extraction:
+
+1. Gemini generates a natural follow-up question
+2. The question is **spoken aloud** via `tts.py`
+3. The user's voice answer is recorded, transcribed, translated, and re-extracted
+4. The answer is merged into the profile (up to 3 attempts per field)
+
+---
+
+## 🔊 Voice Output (TTS)
+
+`tts.py`
+
+Uses **gTTS** for bilingual speech output (Hindi + English) — chosen over offline options since it reliably supports Hindi, unlike most offline TTS engines.
 
 ---
 
 ## 🚀 Future Improvements
 
-- 🧠 Upgrade eligibility checks to use Gemini-based reasoning (beyond age/income)
-- ⚡ Add **FastAPI APIs** to expose the pipeline
-- 💬 Add conversational follow-up for missing profile fields
-- 🏛️ Connect with the real government scheme database (PostgreSQL)
-- 🎯 Improve scheme matching and ranking logic
+- 🏛️ Connect with the real government scheme database / API (Divyansh's backend)
+- ⚡ Add **FastAPI APIs** to expose the full pipeline
+- 🎯 Improve scheme ranking with relevance scoring, not just a fixed priority score
 - 🗄️ Add database persistence for user profiles & recommendation history
-- 🗣️ Add voice output (TTS) for responses
+- 🌐 Make follow-up questions respond in the user's spoken language (currently English only)
 
 ---
 
@@ -244,13 +285,16 @@ Make sure `.gitignore` contains:
 .venv/
 __pycache__/
 *.pyc
+temp_audio.wav
+temp_recording.wav
 ```
 
 Never push:
 
 ❌ API keys  
 ❌ `.env`  
-❌ Virtual environment files
+❌ Virtual environment files  
+❌ Recorded audio files
 
 ---
 

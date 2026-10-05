@@ -11,14 +11,16 @@ from langchain_core.messages import HumanMessage
 from config import GEMINI_API_KEY
 from voice_input import record_and_transcribe   # seedha English text deta hai
 from extract_with_llm import extract_profile             # agar file ka naam extract2.py hai: from extract2 import extract_profile
+from translate import translate_text
 
+from tts import speak
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",
     google_api_key=GEMINI_API_KEY,
     temperature=0.3,
 )
 
-MAX_ATTEMPTS_PER_FIELD = 2
+MAX_ATTEMPTS = 2
 
 FIELD_QUESTION_HINTS = {
     "age": "their age",
@@ -55,40 +57,45 @@ def _merge_profile(original: dict, new_data: dict) -> dict:
     return merged
 
 
-def resolve_missing_fields(profile: dict, missing_fields: list, source_lang: str = "en") -> dict:
+def resolve_missing_fields(profile: dict, missing_fields: list, source_lang: str = "hi") -> dict:
     """
-    Har missing field ek-ek karke poochta hai (max MAX_ATTEMPTS_PER_FIELD baar).
+    Har missing field ek-ek karke poochta hai (max MAX_ATTEMPTS baar).
     source_lang sirf compatibility ke liye hai (voice_input already English deta hai).
     Updated profile return karta hai.
     """
-    current = dict(profile)
-    failed = []
-
-    for field in missing_fields:
-        tries = 0
-        while _is_empty(current.get(field)) and tries < MAX_ATTEMPTS_PER_FIELD:
-            tries += 1
-
-            question = generate_follow_up_question([field])
-            print(f"\n🤖 Assistant: {question}")
-
-            answer = record_and_transcribe()
-            print("You said:", answer)
-            if not answer:
-                continue
-
-            result = extract_profile(answer, expected_field=field)
-            print("🔎 Extracted:", result["profile"])
-            current = _merge_profile(current, result["profile"])
-
-        if _is_empty(current.get(field)):
-            failed.append(field)
-
-    if failed:
-        print(f"\n⚠️  Collect nahi hua: {', '.join(failed)}")
-        print("   Partial profile ke saath aage badh rahe hain — results incomplete ho sakte hain.")
-
-    return current
+    attempts = 0
+    current_profile = dict(profile)
+    remaining = list(missing_fields)
+ 
+    while remaining and attempts < MAX_ATTEMPTS:
+        attempts += 1
+ 
+        question = generate_follow_up_question(remaining)
+        print(f"\n🤖 Assistant: {question}")
+        speak(question, lang="en")  # the question itself is generated in English
+ 
+        print("🎙️  Please answer...")
+        answer_transcript = record_and_transcribe()
+        print("You said:", answer_transcript)
+ 
+        if source_lang != "en":
+            answer_text = translate_text(answer_transcript, source_language=source_lang, target_language="en")
+        else:
+            answer_text = answer_transcript
+ 
+        extraction_result = extract_profile(answer_text)
+        current_profile = _merge_profile(current_profile, extraction_result["profile"])
+ 
+        remaining = [f for f in remaining if not current_profile.get(f)]
+ 
+        if remaining:
+            print(f"⚠️  Still missing: {', '.join(remaining)}")
+ 
+    if remaining:
+        print(f"\n⚠️  Could not collect after {MAX_ATTEMPTS} attempts: {', '.join(remaining)}")
+        print("   Proceeding with partial profile — eligibility results may be incomplete.")
+ 
+    return current_profile
 
 
 if __name__ == "__main__":
