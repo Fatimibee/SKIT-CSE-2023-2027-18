@@ -1,4 +1,4 @@
-﻿package com.skit.database.dto;
+package com.skit.database.dto;
 
 import com.skit.database.entity.Scheme;
 import java.util.List;

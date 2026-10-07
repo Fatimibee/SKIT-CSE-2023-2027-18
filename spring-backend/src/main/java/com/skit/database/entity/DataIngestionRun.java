@@ -1,4 +1,4 @@
-﻿package com.skit.database.entity;
+package com.skit.database.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;

@@ -1,4 +1,4 @@
-﻿package com.skit.database.service;
+package com.skit.database.service;
 
 import com.skit.database.dto.SchemeMatchResultDto;
 import com.skit.database.entity.Scheme;

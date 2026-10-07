@@ -1,4 +1,4 @@
-﻿package com.skit.database.service;
+package com.skit.database.service;
 
 import com.skit.database.entity.DataIngestionRun;
 import com.skit.database.entity.RecommendationHistory;

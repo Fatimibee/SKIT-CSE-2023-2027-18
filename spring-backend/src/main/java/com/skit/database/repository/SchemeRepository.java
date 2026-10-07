@@ -1,4 +1,4 @@
-﻿package com.skit.database.repository;
+package com.skit.database.repository;
 
 import com.skit.database.entity.Scheme;
 import org.springframework.data.jpa.repository.JpaRepository;
