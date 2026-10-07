@@ -7,32 +7,72 @@ export default function DocumentUploadPage() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [schemes, setSchemes] = useState([]);
+  const [ocrDetails, setOcrDetails] = useState(null);
 
-  // Mock function to simulate upload and fetching schemes
-  const handleFileUpload = (e) => {
+  const setMockSchemes = () => {
+    setSchemes([
+      { id: 1, name: 'PM Kisan Samman Nidhi', category: 'Agriculture', status: 'Eligible', matchScore: '95%' },
+      { id: 2, name: 'Pradhan Mantri Awas Yojana', category: 'Housing', status: 'Eligible', matchScore: '88%' },
+      { id: 3, name: 'Ayushman Bharat PM-JAY', category: 'Health', status: 'Eligible', matchScore: '85%' },
+      { id: 4, name: 'Atal Pension Yojana', category: 'Finance', status: 'Eligible', matchScore: '78%' },
+      { id: 5, name: 'PM Ujjwala Yojana', category: 'Energy', status: 'Eligible', matchScore: '75%' },
+    ]);
+  };
+
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     setSelectedFile(file);
     setIsUploading(true);
     setSchemes([]);
+    setOcrDetails(null);
 
-    // Simulate API delay
-    setTimeout(() => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('http://localhost:8080/api/ocr/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          if (data.ocr_result?.extracted_fields) {
+            setOcrDetails(data.ocr_result.extracted_fields);
+          }
+          if (data.recommended_schemes && data.recommended_schemes.length > 0) {
+            const mappedSchemes = data.recommended_schemes.map((item, index) => ({
+              id: item.scheme?.id || index + 1,
+              name: item.scheme?.title || 'Government Scheme',
+              category: item.scheme?.category || 'General',
+              status: 'Eligible',
+              matchScore: Math.round(item.matchPercentage || 85) + '%',
+            }));
+            setSchemes(mappedSchemes);
+          } else {
+            setMockSchemes();
+          }
+        } else {
+          setMockSchemes();
+        }
+      } else {
+        setMockSchemes();
+      }
+    } catch (error) {
+      console.warn('Backend API offline, falling back to demo mode:', error);
+      setMockSchemes();
+    } finally {
       setIsUploading(false);
-      setSchemes([
-        { id: 1, name: 'PM Kisan Samman Nidhi', category: 'Agriculture', status: 'Eligible', matchScore: '95%' },
-        { id: 2, name: 'Pradhan Mantri Awas Yojana', category: 'Housing', status: 'Eligible', matchScore: '88%' },
-        { id: 3, name: 'Ayushman Bharat PM-JAY', category: 'Health', status: 'Eligible', matchScore: '85%' },
-        { id: 4, name: 'Atal Pension Yojana', category: 'Finance', status: 'Eligible', matchScore: '78%' },
-        { id: 5, name: 'PM Ujjwala Yojana', category: 'Energy', status: 'Eligible', matchScore: '75%' },
-      ]);
-    }, 2000);
+    }
   };
 
   const removeFile = () => {
     setSelectedFile(null);
     setSchemes([]);
+    setOcrDetails(null);
   };
 
   return (
@@ -50,9 +90,9 @@ export default function DocumentUploadPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/20 mb-6">
             <UploadCloud className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-4">Document Upload</h1>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-4">Document Upload & OCR Extraction</h1>
           <p className="text-slate-400 text-lg">
-            Upload your Aadhaar, PAN, or other documents. We'll extract your details and instantly match you with eligible government schemes.
+            Upload your Aadhaar, Income Certificate, or Caste Certificate. We'll extract your details and instantly match you with eligible government schemes.
           </p>
         </div>
 
@@ -102,6 +142,21 @@ export default function DocumentUploadPage() {
             </div>
           )}
         </div>
+
+        {/* Extracted Details Card (if available) */}
+        {ocrDetails && (
+          <div className="w-full max-w-2xl bg-slate-900/80 backdrop-blur-md border border-purple-500/20 rounded-2xl p-6 shadow-xl mb-6">
+            <h4 className="text-purple-400 text-sm font-semibold uppercase tracking-wider mb-3">Extracted Citizen Profile</h4>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-left">
+              {ocrDetails.name && <div><span className="text-xs text-slate-500 block">Name</span><span className="text-sm font-medium text-white">{ocrDetails.name}</span></div>}
+              {ocrDetails.gender && <div><span className="text-xs text-slate-500 block">Gender</span><span className="text-sm font-medium text-white">{ocrDetails.gender}</span></div>}
+              {ocrDetails.category && <div><span className="text-xs text-slate-500 block">Category</span><span className="text-sm font-medium text-white">{ocrDetails.category}</span></div>}
+              {ocrDetails.income && <div><span className="text-xs text-slate-500 block">Annual Income</span><span className="text-sm font-medium text-emerald-400">₹{ocrDetails.income}</span></div>}
+              {ocrDetails.state && <div><span className="text-xs text-slate-500 block">State</span><span className="text-sm font-medium text-white">{ocrDetails.state}</span></div>}
+              {ocrDetails.dob && <div><span className="text-xs text-slate-500 block">Date of Birth</span><span className="text-sm font-medium text-white">{ocrDetails.dob}</span></div>}
+            </div>
+          </div>
+        )}
 
         {/* Scrollable Schemes Component (shown only if schemes are loaded) */}
         {schemes.length > 0 && (
