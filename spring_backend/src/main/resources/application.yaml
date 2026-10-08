@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: spring-backend
+
+google:
+  client:
+    id: 1091431861604-mfn5bins5j5c9nitlb0kdfvtf9e3jc21.apps.googleusercontent.com
